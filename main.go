@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+
 	"securecodewarrior.com/ddias/heapoverflow/model"
 	"securecodewarrior.com/ddias/heapoverflow/model/storage"
 	"securecodewarrior.com/ddias/heapoverflow/model/storage/sql"
@@ -17,7 +18,11 @@ import (
 type app struct {
 	storage.Storage
 	jwtKeyFile string
+	routes     []route
+	router     *mux.Router
 }
+
+var webapp app
 
 func main() {
 
@@ -54,51 +59,25 @@ func main() {
 	if err := db.AutoMigrate(&model.User{}, &model.Question{}, &model.Comment{}).Error; err != nil {
 		log.Fatalf("Error migrating db %s\n", err)
 	}
-	app := app{db, *jwtKey}
 
-	if _, err := app.Storage.CreateUser(model.User{
+	webapp = app{db, *jwtKey, routes, mux.NewRouter()}
+	webapp.registerRoutes(middleJSONLogger)
+	webapp.router.Use(
+		limits.toLimit,
+		webapp.Validate,
+	)
+
+	if _, err := webapp.Storage.CreateUser(model.User{
 		Email:    "zim@email.com",
 		Nick:     "zim",
-		Password: "secret1",
+		Password: "LWY9nwm5ov",
 	}); err != nil {
-		log.Fatal("Cannot create user zero")
+		log.Fatalf("Cannot create user zero: %+v", err)
 	}
-
-	router := mux.NewRouter()
-
-	rUser := router.PathPrefix("/user").Subrouter()
-	rUser.Handle("", middleJSONLogger(app.CreateUser)).Methods("POST")
-	rUser.Handle("", app.Validate(middleJSONLogger(app.RetrieveUsers))).Methods("GET")
-	rUser.Handle("/{id:[0-9]+}", app.Validate(middleJSONLogger(app.RetrieveUser))).Methods("GET")
-	rUser.Handle("/{id:[0-9]+}", app.Validate(middleJSONLogger(app.DeleteUser))).Methods("DELETE")
-	rUser.Handle("/{id:[0-9]+}", app.Validate(middleJSONLogger(app.UpdateUser))).Methods("PUT")
-
-	rQuestion := router.PathPrefix("/question").Subrouter()
-	rQuestion.Handle("", middleJSONLogger(app.CreateQuestion)).Methods("POST")
-	rQuestion.Handle("", middleJSONLogger(app.RetrieveQuestions)).Methods("GET")
-	rQuestion.Handle("/{id:[0-9]+}", middleJSONLogger(app.RetrieveQuestion)).Methods("GET")
-	rQuestion.Handle("/{id:[0-9]+}", middleJSONLogger(app.UpdateQuestion)).Methods("PUT")
-	rQuestion.Handle("/{id:[0-9]+}/vote", middleJSONLogger(app.UpVoteQuestion)).Methods("PUT")
-	rQuestion.Handle("/{id:[0-9]+}/vote", middleJSONLogger(app.DownVoteQuestion)).Methods("DELETE")
-
-	rQuestion.Handle("/{id:[0-9]+}/comments", middleJSONLogger(app.RetrieveQuestionComments)).Methods("GET")
-	rQuestion.Handle("/{id:[0-9]+}/comments", middleJSONLogger(app.CreateQuestionComments)).Methods("POST")
-	rQuestion.Handle("/{id:[0-9]+}/comments/{cid:[0-9]+}", middleJSONLogger(app.RetrieveQuestionComment)).Methods("GET")
-	rQuestion.Handle("/{id:[0-9]+}/comments/{cid:[0-9]+}", middleJSONLogger(app.UpdateQuestionComment)).Methods("PUT")
-	rQuestion.Handle("/{id:[0-9]+}/comments/{cid:[0-9]+}/vote", middleJSONLogger(app.UpVoteQuestionComment)).Methods("PUT")
-	rQuestion.Handle("/{id:[0-9]+}/comments/{cid:[0-9]+}/vote", middleJSONLogger(app.DownVoteQuestionComment)).Methods("DELETE")
-
-	rQuestion.Use(app.Validate)
-
-	router.Handle("/login", middleJSONLogger(app.Login)).Methods("POST")
-
-	router.Use(
-		limits.toLimit,
-	)
 
 	srv := http.Server{
 		Addr:         "localhost:8000",
-		Handler:      router,
+		Handler:      webapp.router,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

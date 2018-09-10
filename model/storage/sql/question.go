@@ -87,7 +87,7 @@ func (db *DB) FindQuestionByTitle(title string) (model.Question, error) {
 func (db *DB) FindQuestionByAuthor(author int) ([]model.Question, error) {
 	var question []model.Question
 
-	if err := db.Where("UserID = ?", author).Find(&question).Error; err != nil {
+	if err := db.Where("user_id = ?", author).Find(&question).Error; err != nil {
 		return nil, storage.ErrQuestionNotFound
 	}
 

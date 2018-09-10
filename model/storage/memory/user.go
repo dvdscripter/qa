@@ -1,10 +1,10 @@
 package memory
 
 import (
-	"fmt"
 	"html"
 	"time"
 
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 	"securecodewarrior.com/ddias/heapoverflow/model"
 	"securecodewarrior.com/ddias/heapoverflow/model/storage"
@@ -13,20 +13,20 @@ import (
 func (db *DB) Login(login string, pass string) error {
 	user, err := db.FindUserByEmail(login)
 	if err != nil {
-		return fmt.Errorf("user or pass invalid")
+		return errors.Errorf("user or pass invalid")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pass)); err != nil {
-		return fmt.Errorf("user or pass invalid")
+		return errors.Errorf("user or pass invalid")
 	}
 	return nil
 }
 
 func (db *DB) CreateUser(u model.User) (model.User, error) {
 	if _, err := db.FindUserByNick(u.Nick); err == nil {
-		return model.User{}, fmt.Errorf("%s already exist", u.Nick)
+		return model.User{}, errors.Errorf("Cannot create user")
 	}
 	if _, err := db.FindUserByEmail(u.Email); err == nil {
-		return model.User{}, fmt.Errorf("%s already exist", u.Email)
+		return model.User{}, errors.Errorf("Cannot create user")
 	}
 
 	u.ID = len(db.users) + 1
@@ -60,7 +60,7 @@ func (db *DB) UpdateUser(u model.User) (model.User, error) {
 			if u.Password != "" {
 				newPass, err := model.GenPass(u.Password)
 				if err != nil {
-					return model.User{}, fmt.Errorf("Cannot update password")
+					return model.User{}, errors.Errorf("Cannot update password")
 				}
 				db.users[i].Password = newPass
 			}

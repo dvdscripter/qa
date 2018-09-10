@@ -73,7 +73,7 @@ func (db *DB) FindComment(id int) (model.Comment, error) {
 func (db *DB) FindCommentByAuthor(id int) ([]model.Comment, error) {
 	var comment []model.Comment
 
-	if err := db.Where("UserID = ?").Find(&comment).Error; err != nil {
+	if err := db.Where("user_id = ?").Find(&comment).Error; err != nil {
 		return nil, storage.ErrCommentNotFound
 	}
 
@@ -83,7 +83,7 @@ func (db *DB) FindCommentByAuthor(id int) ([]model.Comment, error) {
 func (db *DB) FindCommentByQuestion(id int) ([]model.Comment, error) {
 	var comment []model.Comment
 
-	if err := db.Where("QuestionID = ?").Find(&comment).Error; err != nil {
+	if err := db.Where("question_id = ?", id).Find(&comment).Error; err != nil {
 		return nil, storage.ErrCommentNotFound
 	}
 

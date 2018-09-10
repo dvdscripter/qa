@@ -19,7 +19,7 @@ func middleJSONLogger(fn appHandler) http.Handler {
 		if err != nil {
 			toEncode["result"] = err.Error()
 			w.WriteHeader(http.StatusInternalServerError)
-			log.Printf("E: %s %s %s %s %s\n", r.RemoteAddr, r.Method, r.URL.Path, err, payload.Email)
+			log.Printf("E: %s %s %s %+v %s\n", r.RemoteAddr, r.Method, r.URL.Path, err, payload.Email)
 		} else {
 			toEncode["result"] = resp
 			log.Printf("C: %s %s %s %s\n", r.RemoteAddr, r.Method, r.URL.Path, payload.Email)
@@ -30,6 +30,11 @@ func middleJSONLogger(fn appHandler) http.Handler {
 
 func (app *app) Validate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if app.isPublic(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		header := r.Header.Get("Authorization")
 		if header == "" {
 			http.Error(w, "Missing JWT", http.StatusInternalServerError)

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
+	"github.com/pkg/errors"
 	"securecodewarrior.com/ddias/heapoverflow/model"
 
 	"securecodewarrior.com/ddias/heapoverflow/jwt"
@@ -20,7 +20,7 @@ func (app *app) CreateUser(w http.ResponseWriter, r *http.Request) (interface{},
 
 	payload := jwt.DecodePayload(r)
 	if payload.Email != "" {
-		return nil, fmt.Errorf("Already logged")
+		return nil, errors.Errorf("Already logged")
 	}
 
 	return app.Storage.CreateUser(user)
@@ -52,7 +52,7 @@ func (app *app) DeleteUser(w http.ResponseWriter, r *http.Request) (interface{},
 
 	payload := jwt.DecodePayload(r)
 	if payload.Email != user.Email {
-		return nil, fmt.Errorf("Cannot delete another user")
+		return nil, errors.Errorf("Cannot delete another user")
 	}
 
 	return nil, app.Storage.DeleteUser(id)
@@ -67,7 +67,7 @@ func (app *app) UpdateUser(w http.ResponseWriter, r *http.Request) (interface{},
 
 	payload := jwt.DecodePayload(r)
 	if payload.Email != user.Email {
-		return nil, fmt.Errorf("Cannot update another user")
+		return nil, errors.Errorf("Cannot update another user")
 	}
 
 	id, err := idFromRequest("id", r)
@@ -150,7 +150,7 @@ func (app *app) UpdateQuestion(w http.ResponseWriter, r *http.Request) (interfac
 		return nil, err
 	}
 	if payload.Email != author.Email {
-		return nil, fmt.Errorf("Cannot update another user question")
+		return nil, errors.Errorf("Cannot update another user question")
 	}
 
 	question.ID = id
@@ -173,7 +173,7 @@ func (app *app) UpVoteQuestion(w http.ResponseWriter, r *http.Request) (interfac
 		return nil, err
 	}
 	if payload.Email == author.Email {
-		return nil, fmt.Errorf("Cannot up vote yourself")
+		return nil, errors.Errorf("Cannot up vote yourself")
 	}
 
 	return nil, app.Storage.UpQuestion(id)
@@ -194,7 +194,7 @@ func (app *app) DownVoteQuestion(w http.ResponseWriter, r *http.Request) (interf
 		return nil, err
 	}
 	if payload.Email == author.Email {
-		return nil, fmt.Errorf("Cannot up vote yourself")
+		return nil, errors.Errorf("Cannot up vote yourself")
 	}
 
 	return nil, app.Storage.DownQuestion(id)
@@ -273,7 +273,7 @@ func (app *app) UpdateQuestionComment(w http.ResponseWriter, r *http.Request) (i
 		return nil, err
 	}
 	if payload.Email != author.Email {
-		return nil, fmt.Errorf("Cannot update another user comment")
+		return nil, errors.Errorf("Cannot update another user comment")
 	}
 
 	comment.ID = cid
@@ -305,7 +305,7 @@ func (app *app) UpVoteQuestionComment(w http.ResponseWriter, r *http.Request) (i
 	}
 	payload := jwt.DecodePayload(r)
 	if payload.Email == author.Email {
-		return nil, fmt.Errorf("Cannot up vote yourself")
+		return nil, errors.Errorf("Cannot up vote yourself")
 	}
 
 	return nil, app.Storage.UpComment(cid)
@@ -334,7 +334,7 @@ func (app *app) DownVoteQuestionComment(w http.ResponseWriter, r *http.Request) 
 	}
 	payload := jwt.DecodePayload(r)
 	if payload.Email == author.Email {
-		return nil, fmt.Errorf("Cannot up vote yourself")
+		return nil, errors.Errorf("Cannot up vote yourself")
 	}
 
 	return nil, app.Storage.DownComment(cid)

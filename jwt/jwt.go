@@ -5,11 +5,12 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 var (
@@ -93,18 +94,18 @@ func (t Token) Encode() (string, error) {
 func (t *Token) Decode(s string) error {
 	parts := strings.Split(s, ".")
 	if len(parts) != 3 {
-		return fmt.Errorf("Invalid token")
+		return errors.Errorf("Invalid token")
 	}
 
 	if err := b64DecodeUnmarshal(parts[0], &t.header); err != nil {
-		return fmt.Errorf("Cannot decode header %s", s)
+		return errors.Errorf("Cannot decode header %s", s)
 	}
 	if err := b64DecodeUnmarshal(parts[1], &t.payload); err != nil {
-		return fmt.Errorf("Cannot decode payload %s", s)
+		return errors.Errorf("Cannot decode payload %s", s)
 	}
 	signature, err := base64.RawURLEncoding.DecodeString(parts[2])
 	if err != nil {
-		return fmt.Errorf("Cannot decode signature %s", s)
+		return errors.Errorf("Cannot decode signature %s", s)
 	}
 	t.signature = make([]byte, len(signature))
 	copy(t.signature, signature)
@@ -160,19 +161,19 @@ func (t Token) Check() error {
 
 	if t.payload.Nbf != 0 {
 		if !t.payload.ValidNbf() {
-			return fmt.Errorf("Invalid nbf claim")
+			return errors.Errorf("Invalid nbf claim")
 		}
 	}
 	if t.payload.Exp != 0 {
 		if !t.payload.ValidExp() {
-			return fmt.Errorf("Invalid exp claim")
+			return errors.Errorf("Invalid exp claim")
 		}
 	}
 
 	hp := b64Header + "." + b64Payload
 	signature := sign(hp, t.key)
 	if check := hmac.Equal(t.signature, signature); !check {
-		return fmt.Errorf("Invalid signature")
+		return errors.Errorf("Invalid signature")
 	}
 	return nil
 }
