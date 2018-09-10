@@ -72,7 +72,7 @@ func main() {
 		Nick:     "zim",
 		Password: "LWY9nwm5ov",
 	}); err != nil {
-		log.Fatalf("Cannot create user zero: %+v", err)
+		log.Printf("Cannot create user zero: %+v", err)
 	}
 
 	srv := http.Server{
