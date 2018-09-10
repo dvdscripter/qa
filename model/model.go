@@ -63,11 +63,6 @@ type Comment struct {
 	LastEdit   time.Time `json:"last_edit,omitempty"`
 }
 
-func (u User) Public() User {
-	u.Password = ""
-	return u
-}
-
 func GenPass(password string) (string, error) {
 	pass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
