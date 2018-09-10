@@ -1,10 +1,10 @@
-package sql
+package mongodb
 
 import (
 	"html"
 	"time"
 
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/globalsign/mgo/bson"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 	"securecodewarrior.com/ddias/heapoverflow/model"
@@ -12,14 +12,20 @@ import (
 )
 
 func (db *DB) FindAllUser() ([]model.User, error) {
+	conn := db.Copy()
+	defer conn.Close()
+
 	var users []model.User
-	if err := db.Find(&users).Error; err != nil {
-		return nil, err
+	if err := conn.DB(db.GetDatabase()).C(db.GetUserC()).Find(nil).All(&users); err != nil {
+		return nil, errors.Wrap(err, "cannot enumerate users")
 	}
 	return model.OmitPass(users), nil
 }
 
 func (db *DB) CreateUser(u model.User) (model.User, error) {
+	conn := db.Copy()
+	defer conn.Close()
+
 	if _, err := db.FindUserByNick(u.Nick); err == nil {
 		return model.User{}, errors.Errorf("Cannot create user")
 	}
@@ -38,16 +44,25 @@ func (db *DB) CreateUser(u model.User) (model.User, error) {
 	}
 	u.Password = encPass
 
-	if err := db.Create(&u).Error; err != nil {
-		return model.User{}, err
+	nid, err := conn.DB(db.GetDatabase()).C(db.GetUserC()).Find(nil).Count()
+	if err != nil {
+		return model.User{}, errors.Wrap(err, "cannot get new ID")
+	}
+
+	u.ID = nid
+
+	if err := conn.DB(db.GetDatabase()).C(db.GetUserC()).Insert(&u); err != nil {
+		return model.User{}, errors.Wrap(err, "cannot create new user")
 	}
 	u.Password = ""
 
 	return u, nil
-
 }
 
 func (db *DB) UpdateUser(u model.User) (model.User, error) {
+	conn := db.Copy()
+	defer conn.Close()
+
 	if errs := u.Valid(); errs != nil {
 		return model.User{}, errs
 	}
@@ -67,8 +82,8 @@ func (db *DB) UpdateUser(u model.User) (model.User, error) {
 	// user.Email = html.EscapeString(u.Email)
 	user.Nick = u.Nick
 	user.Avatar = html.EscapeString(u.Avatar)
-	if err := db.Save(&user).Error; err != nil {
-		return model.User{}, err
+	if err := conn.DB(db.GetDatabase()).C(db.GetUserC()).UpdateId(user.ID, &user); err != nil {
+		return model.User{}, errors.Wrapf(err, "cannot update user: %s", user.Nick)
 	}
 	u.Password = ""
 	u.Since = user.Since
@@ -77,13 +92,19 @@ func (db *DB) UpdateUser(u model.User) (model.User, error) {
 }
 
 func (db *DB) DeleteUser(id int) error {
-	return db.Where("id = ?", id).Delete(&model.User{}).Error
+	conn := db.Copy()
+	defer conn.Close()
+
+	return conn.DB(db.GetDatabase()).C(db.GetUserC()).RemoveId(id)
 }
 
 func (db *DB) FindUser(id int) (model.User, error) {
+	conn := db.Copy()
+	defer conn.Close()
+
 	var user model.User
 
-	if err := db.First(&user, id).Error; err != nil {
+	if err := conn.DB(db.GetDatabase()).C(db.GetUserC()).FindId(id).One(&user); err != nil {
 		return model.User{}, storage.ErrUserNotFound
 	}
 	user.Password = ""
@@ -91,19 +112,25 @@ func (db *DB) FindUser(id int) (model.User, error) {
 }
 
 func (db *DB) FindUserByNick(nick string) (model.User, error) {
+	conn := db.Copy()
+	defer conn.Close()
+
 	var user model.User
 
-	if err := db.Where("nick = ?", nick).First(&user).Error; err != nil {
+	if err := conn.DB(db.GetDatabase()).C(db.GetUserC()).Find(bson.M{"nick": nick}).One(&user); err != nil {
 		return model.User{}, storage.ErrUserNotFound
 	}
-
+	user.Password = ""
 	return user, nil
 }
 
 func (db *DB) FindUserByEmail(email string) (model.User, error) {
+	conn := db.Copy()
+	defer conn.Close()
+
 	var user model.User
 
-	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
+	if err := conn.DB(db.GetDatabase()).C(db.GetUserC()).Find(bson.M{"email": email}).One(&user); err != nil {
 		return model.User{}, storage.ErrUserNotFound
 	}
 

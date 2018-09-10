@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"time"
 
+	"securecodewarrior.com/ddias/heapoverflow/model/storage/mongodb"
+
 	"github.com/gorilla/mux"
 
 	"securecodewarrior.com/ddias/heapoverflow/model"
 	"securecodewarrior.com/ddias/heapoverflow/model/storage"
-	"securecodewarrior.com/ddias/heapoverflow/model/storage/sql"
 
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
@@ -50,15 +51,16 @@ func main() {
 	// db := memory.New()
 	// app := app{db, *jwtKey}
 
-	db, err := sql.New("database.db")
+	// db, err := sql.New("database.db")
+	db, err := mongodb.New("localhost", "go-qa-forum", "users", "questions", "comments")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%+v\n", err)
 	}
 	defer db.Close()
 	// db.DropTableIfExists("users", "questions", "comments")
-	if err := db.AutoMigrate(&model.User{}, &model.Question{}, &model.Comment{}).Error; err != nil {
-		log.Fatalf("Error migrating db %s\n", err)
-	}
+	// if err := db.AutoMigrate(&model.User{}, &model.Question{}, &model.Comment{}).Error; err != nil {
+	// 	log.Fatalf("Error migrating db %s\n", err)
+	// }
 
 	webapp = app{db, *jwtKey, routes, mux.NewRouter()}
 	webapp.registerRoutes(middleJSONLogger)

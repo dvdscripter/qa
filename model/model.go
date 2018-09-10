@@ -35,38 +35,38 @@ var (
 )
 
 type User struct {
-	ID       int       `json:"id,omitempty"`
+	ID       int       `json:"id" bson:"_id"`
 	Since    time.Time `json:"since,omitempty"`
 	Email    string    `json:"email,omitempty" gorm:"unique_index;size:320"`
 	Nick     string    `json:"nick,omitempty" gorm:"unique_index;size:16"`
-	Avatar   string    `json:"avatar,omitempty"`
+	Avatar   string    `json:"avatar,omitempty" bson:"avatar,omitempty"`
 	Password string    `json:"password,omitempty" gorm:"not null"`
 }
 
 type Question struct {
-	ID       int       `json:"id,omitempty"`
+	ID       int       `json:"id" bson:"_id"`
 	Title    string    `json:"title,omitempty" gorm:"unique_index;size:140"`
 	Content  string    `json:"content,omitempty" gorm:"index;size:2000"`
 	Votes    int       `json:"votes,omitempty"`
-	UserID   int       `json:"author,omitempty"`
+	UserID   int       `json:"author" bson:"user_id"`
 	When     time.Time `json:"when,omitempty"`
 	LastEdit time.Time `json:"last_edit,omitempty"`
 }
 
 type Comment struct {
-	ID         int       `json:"id,omitempty"`
-	QuestionID int       `json:"question,omitempty"`
-	UserID     int       `json:"author,omitempty"`
+	ID         int       `json:"id" bson:"_id"`
+	QuestionID int       `json:"question" bson:"question_id"`
+	UserID     int       `json:"author" bson:"user_id"`
 	Content    string    `json:"content,omitempty;size:2000"`
 	Votes      int       `json:"votes,omitempty"`
 	When       time.Time `json:"when,omitempty"`
-	LastEdit   time.Time `json:"last_edit,omitempty"`
+	LastEdit   time.Time `json:"last_edit,omitempty" bson:"last_edit"`
 }
 
 func GenPass(password string) (string, error) {
 	pass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "cannot generate hash")
 	}
 	return string(pass), nil
 }
@@ -101,6 +101,10 @@ func (c Comment) Valid() error {
 		if err != nil {
 			errFound = append(errFound, err.Error())
 		}
+	}
+
+	if errFound == nil {
+		return nil
 	}
 
 	return errors.Errorf("%s", strings.Join(errFound, "\n"))
