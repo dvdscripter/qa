@@ -13,7 +13,7 @@ import (
 	_ "image/png"
 
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/bcrypt"
+	"securecodewarrior.com/ddias/heapoverflow/crypto/argon2"
 )
 
 const (
@@ -64,7 +64,8 @@ type Comment struct {
 }
 
 func GenPass(password string) (string, error) {
-	pass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	// pass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	pass, err := argon2.GenerateFromPassword([]byte(password), nil, nil)
 	if err != nil {
 		return "", errors.Wrap(err, "cannot generate hash")
 	}

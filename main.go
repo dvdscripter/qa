@@ -8,6 +8,7 @@ import (
 
 	"securecodewarrior.com/ddias/heapoverflow/model/storage/mongodb"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 
 	"securecodewarrior.com/ddias/heapoverflow/model"
@@ -78,13 +79,16 @@ func main() {
 	}
 
 	srv := http.Server{
-		Addr:         "localhost:8000",
-		Handler:      webapp.router,
+		Addr: "localhost:8000",
+		Handler: handlers.CORS(
+			handlers.AllowedOrigins([]string{"*"}),
+			handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS", "DELETE"}),
+		)(webapp.router),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 	// openssl genrsa -out server.key 2048
 	// openssl req -new -x509 -sha256 -key server.key -out server.crt -days 3650
 	log.Fatal(srv.ListenAndServeTLS(*cert, *key))
-
+	// log.Fatal(srv.ListenAndServe())
 }

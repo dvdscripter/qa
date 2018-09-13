@@ -6,7 +6,7 @@ import (
 
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/bcrypt"
+	"securecodewarrior.com/ddias/heapoverflow/crypto/argon2"
 	"securecodewarrior.com/ddias/heapoverflow/model"
 	"securecodewarrior.com/ddias/heapoverflow/model/storage"
 )
@@ -28,7 +28,6 @@ func (db *DB) CreateUser(u model.User) (model.User, error) {
 	}
 
 	u.Since = time.Now()
-	u.Email = html.EscapeString(u.Email)
 	if errs := u.Valid(); errs != nil {
 		return model.User{}, errors.Errorf("Cannot create user: %s", errs)
 	}
@@ -113,9 +112,11 @@ func (db *DB) FindUserByEmail(email string) (model.User, error) {
 func (db *DB) Login(login string, pass string) error {
 	user, err := db.FindUserByEmail(login)
 	if err != nil {
+		// still pays the timing to hash cmp
+		argon2.CompareHashAndPassword([]byte(user.Password), []byte(pass))
 		return errors.Errorf("user or pass invalid")
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pass)); err != nil {
+	if err := argon2.CompareHashAndPassword([]byte(user.Password), []byte(pass)); err != nil {
 		return errors.Errorf("user or pass invalid")
 	}
 	return nil
