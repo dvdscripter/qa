@@ -17,7 +17,8 @@ func middleJSONLogger(fn appHandler) http.Handler {
 
 		resp, err := fn(w, r)
 		if err != nil {
-			toEncode["result"] = err.Error()
+			toEncode["error"] = err.Error()
+			toEncode["result"] = nil
 			w.WriteHeader(http.StatusInternalServerError)
 			log.Printf("E: %s %s %s %+v %s\n", r.RemoteAddr, r.Method, r.URL.Path, err, payload.Email)
 		} else {

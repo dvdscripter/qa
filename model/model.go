@@ -2,7 +2,6 @@ package model
 
 import (
 	"bytes"
-	"encoding/base64"
 	"image"
 	"regexp"
 	"strings"
@@ -13,12 +12,14 @@ import (
 	_ "image/png"
 
 	"github.com/pkg/errors"
+	"github.com/vincent-petithory/dataurl"
 	"securecodewarrior.com/ddias/heapoverflow/crypto/argon2"
 )
 
 const (
 	defaultNickMaxSize     = 16
 	defaultAvatarMaxSize   = 4096
+	defaultAvatarDim       = 40
 	defaultMinPasswordSize = 7
 	defaultMaxPasswordSize = 128
 
@@ -47,7 +48,7 @@ type Question struct {
 	ID       int       `json:"id" bson:"_id"`
 	Title    string    `json:"title,omitempty" gorm:"unique_index;size:140"`
 	Content  string    `json:"content,omitempty" gorm:"index;size:2000"`
-	Votes    int       `json:"votes,omitempty"`
+	Votes    int       `json:"votes"`
 	UserID   int       `json:"author" bson:"user_id"`
 	When     time.Time `json:"when,omitempty"`
 	LastEdit time.Time `json:"last_edit,omitempty"`
@@ -58,7 +59,7 @@ type Comment struct {
 	QuestionID int       `json:"question" bson:"question_id"`
 	UserID     int       `json:"author" bson:"user_id"`
 	Content    string    `json:"content,omitempty;size:2000"`
-	Votes      int       `json:"votes,omitempty"`
+	Votes      int       `json:"votes"`
 	When       time.Time `json:"when,omitempty"`
 	LastEdit   time.Time `json:"last_edit,omitempty" bson:"last_edit"`
 }
@@ -112,7 +113,7 @@ func (c Comment) Valid() error {
 }
 
 func (u Question) validTitle() error {
-	if len(u.Title) < defaultTitleMinSize && len(u.Title) > defaultTitleMaxSize {
+	if len(u.Title) < defaultTitleMinSize || len(u.Title) > defaultTitleMaxSize {
 		return errors.Errorf("Invalid title length must be between %d and %d characters",
 			defaultTitleMinSize, defaultTitleMaxSize)
 	}
@@ -190,21 +191,21 @@ func (u User) ValidAvatar() error {
 	if u.Avatar == "" {
 		return nil
 	}
-	avatar, err := base64.StdEncoding.DecodeString(u.Avatar)
+	avatar, err := dataurl.DecodeString(u.Avatar)
 	if err != nil {
-		return errors.Errorf("Cannot decode avatar")
+		return errors.Wrap(err, "cannot decode avatar")
 	}
-	if len(avatar) > defaultAvatarMaxSize {
+	if len(avatar.Data) > defaultAvatarMaxSize {
 		return errors.Errorf("Max avatar size: %d", defaultAvatarMaxSize)
 	}
-	avatarBuffer := bytes.NewBuffer(avatar)
+	avatarBuffer := bytes.NewBuffer(avatar.Data)
 	avatarImg, _, err := image.Decode(avatarBuffer)
 	if err != nil {
 		return errors.Errorf("Cannot decode avatar image")
 	}
-	dim := defaultAvatarMaxSize / 4
-	if avatarImg.Bounds().Max.X > dim || avatarImg.Bounds().Max.Y > dim {
-		return errors.Errorf("Avatar exceeds %d dimensions", dim)
+	if avatarImg.Bounds().Max.X > defaultAvatarDim ||
+		avatarImg.Bounds().Max.Y > defaultAvatarDim {
+		return errors.Errorf("Avatar exceeds %d dimensions", defaultAvatarDim)
 	}
 	return nil
 }

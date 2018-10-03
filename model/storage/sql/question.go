@@ -34,7 +34,7 @@ func (db *DB) CreateQuestion(q model.Question) (model.Question, error) {
 	q.Content = html.EscapeString(q.Content)
 
 	if err := q.Valid(); err != nil {
-		return model.Question{}, model.ErrInvalidQuestion
+		return model.Question{}, err
 	}
 
 	if err := db.Create(&q).Error; err != nil {
@@ -46,7 +46,7 @@ func (db *DB) CreateQuestion(q model.Question) (model.Question, error) {
 
 func (db *DB) UpdateQuestion(q model.Question) (model.Question, error) {
 	if err := q.Valid(); err != nil {
-		return model.Question{}, model.ErrInvalidQuestion
+		return model.Question{}, err
 	}
 
 	question, err := db.FindQuestion(q.ID)

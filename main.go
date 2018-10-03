@@ -28,8 +28,8 @@ var webapp app
 
 func main() {
 
-	cert := flag.String("cert", "server.crt", "public certificate")
-	key := flag.String("key", "server.key", "private certificate")
+	// cert := flag.String("cert", "server.crt", "public certificate")
+	// key := flag.String("key", "server.key", "private certificate")
 	jwtKey := flag.String("jwt", "jwt.key", "file with jwt key")
 	// openssl rand -out jwt.key -hex 256
 
@@ -82,6 +82,7 @@ func main() {
 		Addr: "localhost:8000",
 		Handler: handlers.CORS(
 			handlers.AllowedOrigins([]string{"*"}),
+			handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"}),
 			handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS", "DELETE"}),
 		)(webapp.router),
 		ReadTimeout:  5 * time.Second,
@@ -89,6 +90,6 @@ func main() {
 	}
 	// openssl genrsa -out server.key 2048
 	// openssl req -new -x509 -sha256 -key server.key -out server.crt -days 3650
-	log.Fatal(srv.ListenAndServeTLS(*cert, *key))
+	log.Fatal(srv.ListenAndServe())
 	// log.Fatal(srv.ListenAndServe())
 }

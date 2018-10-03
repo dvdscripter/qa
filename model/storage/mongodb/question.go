@@ -42,15 +42,10 @@ func (db *DB) CreateQuestion(q model.Question) (model.Question, error) {
 	q.Content = html.EscapeString(q.Content)
 
 	if err := q.Valid(); err != nil {
-		return model.Question{}, model.ErrInvalidQuestion
+		return model.Question{}, err
 	}
 
-	nid, err := conn.DB(db.GetDatabase()).C(db.GetQuestionC()).Find(nil).Count()
-	if err != nil {
-		return model.Question{}, errors.Wrap(err, "cannot get new ID")
-	}
-
-	q.ID = nid
+	q.ID = db.getID(db.GetQuestionC())
 
 	if err := conn.DB(db.GetDatabase()).C(db.GetQuestionC()).Insert(&q); err != nil {
 		return model.Question{}, errors.Wrap(err, "cannot create new question")
@@ -64,7 +59,7 @@ func (db *DB) UpdateQuestion(q model.Question) (model.Question, error) {
 	defer conn.Close()
 
 	if err := q.Valid(); err != nil {
-		return model.Question{}, model.ErrInvalidQuestion
+		return model.Question{}, err
 	}
 
 	question, err := db.FindQuestion(q.ID)

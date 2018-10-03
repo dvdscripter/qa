@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"securecodewarrior.com/ddias/heapoverflow/model"
 
@@ -37,6 +38,22 @@ func (app *app) RetrieveUser(w http.ResponseWriter, r *http.Request) (interface{
 	}
 
 	return app.Storage.FindUser(id)
+}
+
+func (app *app) RetrieveUserByEmail(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+	params := mux.Vars(r)
+	email, exist := params["email"]
+	if !exist {
+		return nil, errors.Errorf("Missing email parameter")
+	}
+
+	user, err := app.Storage.FindUserByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+	user.Password = ""
+
+	return user, nil
 }
 
 func (app *app) DeleteUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {

@@ -17,6 +17,7 @@ var routes = []route{
 	{"/user", "POST", webapp.CreateUser, true},
 	{"/user", "GET", webapp.RetrieveUsers, false},
 	{"/user/{id:[0-9]+}", "GET", webapp.RetrieveUser, false},
+	{"/user/{email}", "GET", webapp.RetrieveUserByEmail, false},
 	{"/user/{id:[0-9]+}", "DELETE", webapp.DeleteUser, false},
 	{"/user/{id:[0-9]+}", "PUT", webapp.UpdateUser, false},
 

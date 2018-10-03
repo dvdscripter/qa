@@ -34,12 +34,7 @@ func (db *DB) CreateComment(c model.Comment) (model.Comment, error) {
 		return model.Comment{}, model.ErrInvalidComment
 	}
 
-	nid, err := conn.DB(db.GetDatabase()).C(db.GetCommentC()).Find(nil).Count()
-	if err != nil {
-		return model.Comment{}, errors.Wrap(err, "cannot get new ID")
-	}
-
-	c.ID = nid
+	c.ID = db.getID(db.GetCommentC())
 
 	if err := conn.DB(db.GetDatabase()).C(db.GetCommentC()).Insert(&c); err != nil {
 		return model.Comment{}, errors.Wrap(err, "cannot create new comment")

@@ -29,7 +29,7 @@ func (db *DB) CreateQuestion(q model.Question) (model.Question, error) {
 	q.Content = html.EscapeString(q.Content)
 
 	if err := q.Valid(); err != nil {
-		return model.Question{}, model.ErrInvalidQuestion
+		return model.Question{}, err
 	}
 
 	db.questions = append(db.questions, q)
@@ -39,7 +39,7 @@ func (db *DB) CreateQuestion(q model.Question) (model.Question, error) {
 
 func (db *DB) UpdateQuestion(q model.Question) (model.Question, error) {
 	if err := q.Valid(); err != nil {
-		return model.Question{}, model.ErrInvalidQuestion
+		return model.Question{}, err
 	}
 	for i, question := range db.questions {
 		if q.ID == question.ID {

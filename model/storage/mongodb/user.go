@@ -43,12 +43,7 @@ func (db *DB) CreateUser(u model.User) (model.User, error) {
 	}
 	u.Password = encPass
 
-	nid, err := conn.DB(db.GetDatabase()).C(db.GetUserC()).Find(nil).Count()
-	if err != nil {
-		return model.User{}, errors.Wrap(err, "cannot get new ID")
-	}
-
-	u.ID = nid
+	u.ID = db.getID(db.GetUserC())
 
 	if err := conn.DB(db.GetDatabase()).C(db.GetUserC()).Insert(&u); err != nil {
 		return model.User{}, errors.Wrap(err, "cannot create new user")
@@ -62,25 +57,32 @@ func (db *DB) UpdateUser(u model.User) (model.User, error) {
 	conn := db.Copy()
 	defer conn.Close()
 
-	if errs := u.Valid(); errs != nil {
-		return model.User{}, errs
-	}
-
 	user, err := db.FindUser(u.ID)
 	if err != nil {
 		return model.User{}, storage.ErrUserNotFound
 	}
 
 	if u.Password != "" {
+		if errs := u.ValidPassword(); errs != nil {
+			return model.User{}, errs
+		}
 		newPass, err := model.GenPass(u.Password)
 		if err != nil {
 			return model.User{}, err
 		}
 		user.Password = newPass
 	}
-	// user.Email = html.EscapeString(u.Email)
+
+	if errs := u.ValidNick(); errs != nil {
+		return model.User{}, errs
+	}
+	if errs := u.ValidAvatar(); errs != nil {
+		return model.User{}, errs
+	}
+
 	user.Nick = u.Nick
 	user.Avatar = html.EscapeString(u.Avatar)
+
 	if err := conn.DB(db.GetDatabase()).C(db.GetUserC()).UpdateId(user.ID, &user); err != nil {
 		return model.User{}, errors.Wrapf(err, "cannot update user: %s", user.Nick)
 	}
@@ -139,7 +141,7 @@ func (db *DB) FindUserByEmail(email string) (model.User, error) {
 func (db *DB) Login(login string, pass string) error {
 	user, err := db.FindUserByEmail(login)
 	if err != nil {
-		argon2.CompareHashAndPassword([]byte(user.Password), []byte(pass))
+		argon2.CompareHashAndPassword([]byte("not found"), []byte(pass))
 		return errors.Errorf("user or pass invalid")
 	}
 	if err := argon2.CompareHashAndPassword([]byte(user.Password), []byte(pass)); err != nil {

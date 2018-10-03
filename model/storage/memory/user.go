@@ -12,7 +12,7 @@ import (
 func (db *DB) Login(login string, pass string) error {
 	user, err := db.FindUserByEmail(login)
 	if err != nil {
-		argon2.CompareHashAndPassword([]byte(user.Password), []byte(pass))
+		argon2.CompareHashAndPassword([]byte("not found"), []byte(pass))
 		return errors.Errorf("user or pass invalid")
 	}
 	if err := argon2.CompareHashAndPassword([]byte(user.Password), []byte(pass)); err != nil {
@@ -51,19 +51,26 @@ func (db *DB) FindAllUser() ([]model.User, error) {
 }
 
 func (db *DB) UpdateUser(u model.User) (model.User, error) {
-	if errs := u.Valid(); errs != nil {
-		return model.User{}, model.ErrInvalidUser
+	if u.Avatar != "" {
+		if err := u.ValidAvatar(); err != nil {
+			return model.User{}, err
+		}
+	}
+	if err := u.ValidNick(); err != nil {
+		return model.User{}, err
 	}
 	for i, user := range db.users {
 		if u.ID == user.ID {
 			if u.Password != "" {
+				if err := u.ValidPassword(); err != nil {
+					return model.User{}, err
+				}
 				newPass, err := model.GenPass(u.Password)
 				if err != nil {
 					return model.User{}, errors.Errorf("Cannot update password")
 				}
 				db.users[i].Password = newPass
 			}
-			// db.users[i].Email = html.EscapeString(u.Email)
 			db.users[i].Nick = u.Nick
 			db.users[i].Avatar = u.Avatar
 			u.Password = ""

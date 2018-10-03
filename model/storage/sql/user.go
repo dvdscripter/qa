@@ -47,9 +47,6 @@ func (db *DB) CreateUser(u model.User) (model.User, error) {
 }
 
 func (db *DB) UpdateUser(u model.User) (model.User, error) {
-	if errs := u.Valid(); errs != nil {
-		return model.User{}, errs
-	}
 
 	user, err := db.FindUser(u.ID)
 	if err != nil {
@@ -63,9 +60,13 @@ func (db *DB) UpdateUser(u model.User) (model.User, error) {
 		}
 		user.Password = newPass
 	}
-	// user.Email = html.EscapeString(u.Email)
 	user.Nick = u.Nick
 	user.Avatar = html.EscapeString(u.Avatar)
+
+	if errs := user.Valid(); errs != nil {
+		return model.User{}, errs
+	}
+
 	if err := db.Save(&user).Error; err != nil {
 		return model.User{}, err
 	}
@@ -95,7 +96,7 @@ func (db *DB) FindUserByNick(nick string) (model.User, error) {
 	if err := db.Where("nick = ?", nick).First(&user).Error; err != nil {
 		return model.User{}, storage.ErrUserNotFound
 	}
-
+	user.Password = ""
 	return user, nil
 }
 
@@ -105,15 +106,14 @@ func (db *DB) FindUserByEmail(email string) (model.User, error) {
 	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 		return model.User{}, storage.ErrUserNotFound
 	}
-
+	user.Password = ""
 	return user, nil
 }
 
 func (db *DB) Login(login string, pass string) error {
 	user, err := db.FindUserByEmail(login)
 	if err != nil {
-		// still pays the timing to hash cmp
-		argon2.CompareHashAndPassword([]byte(user.Password), []byte(pass))
+		argon2.CompareHashAndPassword([]byte("not found"), []byte(pass))
 		return errors.Errorf("user or pass invalid")
 	}
 	if err := argon2.CompareHashAndPassword([]byte(user.Password), []byte(pass)); err != nil {
