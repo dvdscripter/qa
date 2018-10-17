@@ -28,25 +28,33 @@ var routes = []route{
 	{"/question/{id:[0-9]+}/vote", "PUT", webapp.UpVoteQuestion, false},
 	{"/question/{id:[0-9]+}/vote", "DELETE", webapp.DownVoteQuestion, false},
 
-	{"/question/{id:[0-9]+}/comments", "POST", webapp.CreateQuestionComments, false},
-	{"/question/{id:[0-9]+}/comments", "GET", webapp.RetrieveQuestionComments, false},
-	{"/question/{id:[0-9]+}/comments/{cid:[0-9]+}", "GET", webapp.RetrieveQuestionComment, false},
-	{"/question/{id:[0-9]+}/comments/{cid:[0-9]+}", "PUT", webapp.UpdateQuestionComment, false},
-	{"/question/{id:[0-9]+}/comments/{cid:[0-9]+}/vote", "PUT", webapp.UpVoteQuestionComment, false},
-	{"/question/{id:[0-9]+}/comments/{cid:[0-9]+}/vote", "DELETE", webapp.DownVoteQuestionComment, false},
+	{"/question/{id:[0-9]+}/comments", "POST", webapp.CreateQuestionComments,
+		false},
+	{"/question/{id:[0-9]+}/comments", "GET", webapp.RetrieveQuestionComments,
+		false},
+	{"/question/{id:[0-9]+}/comments/{cid:[0-9]+}", "GET",
+		webapp.RetrieveQuestionComment, false},
+	{"/question/{id:[0-9]+}/comments/{cid:[0-9]+}", "PUT",
+		webapp.UpdateQuestionComment, false},
+	{"/question/{id:[0-9]+}/comments/{cid:[0-9]+}/vote", "PUT",
+		webapp.UpVoteQuestionComment, false},
+	{"/question/{id:[0-9]+}/comments/{cid:[0-9]+}/vote", "DELETE",
+		webapp.DownVoteQuestionComment, false},
 }
 
 func (app *app) registerRoutes(logger func(appHandler) http.Handler) {
 
 	for _, route := range app.routes {
-		app.router.Handle(route.pattern, logger(route.handler)).Methods(route.method)
+		app.router.Handle(route.pattern, logger(route.handler)).
+			Methods(route.method)
 	}
 
 }
 
 func (app *app) isPublic(r *http.Request) bool {
 	for _, route := range app.routes {
-		if route.pattern == r.URL.Path && r.Method == route.method && route.public {
+		if route.pattern == r.URL.Path && r.Method == route.method &&
+			route.public {
 			return true
 		}
 	}

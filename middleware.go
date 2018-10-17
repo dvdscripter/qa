@@ -6,8 +6,23 @@ import (
 	"net/http"
 	"strings"
 
+	"golang.org/x/time/rate"
 	"securecodewarrior.com/ddias/heapoverflow/jwt"
 )
+
+type limit struct {
+	*rate.Limiter
+}
+
+func (l *limit) toLimit(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !l.Allow() {
+			http.Error(w, "Rate limiting", http.StatusTooManyRequests)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 func middleJSONLogger(fn appHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -20,10 +35,12 @@ func middleJSONLogger(fn appHandler) http.Handler {
 			toEncode["error"] = err.Error()
 			toEncode["result"] = nil
 			w.WriteHeader(http.StatusInternalServerError)
-			log.Printf("E: %s %s %s %+v %s\n", r.RemoteAddr, r.Method, r.URL.Path, err, payload.Email)
+			log.Printf("E: %s %s %s %+v %s\n", r.RemoteAddr, r.Method,
+				r.URL.Path, err, payload.Email)
 		} else {
 			toEncode["result"] = resp
-			log.Printf("C: %s %s %s %s\n", r.RemoteAddr, r.Method, r.URL.Path, payload.Email)
+			log.Printf("C: %s %s %s %s\n", r.RemoteAddr, r.Method, r.URL.Path,
+				payload.Email)
 		}
 		json.NewEncoder(w).Encode(toEncode)
 	})

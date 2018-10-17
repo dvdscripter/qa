@@ -34,7 +34,7 @@ func idFromRequest(param string, r *http.Request) (int, error) {
 
 	id, err := strconv.Atoi(rawID)
 	if err != nil {
-		return -1, errors.Wrapf(err, "cannot convert %s to int", id)
+		return -1, errors.Wrapf(err, "cannot convert %d to int", id)
 	}
 	return id, nil
 }
