@@ -48,7 +48,7 @@ func middleJSONLogger(fn appHandler) http.Handler {
 
 func (app *app) Validate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if app.isPublic(r) {
+		if app.isPublic(r) || staticWhiteList(app.staticDir, r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -37,4 +39,11 @@ func idFromRequest(param string, r *http.Request) (int, error) {
 		return -1, errors.Wrapf(err, "cannot convert %d to int", id)
 	}
 	return id, nil
+}
+
+func staticWhiteList(root, path string) bool {
+	if _, err := os.Stat(filepath.Join(root, path)); err != nil {
+		return false
+	}
+	return true
 }
